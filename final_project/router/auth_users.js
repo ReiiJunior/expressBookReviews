@@ -3,26 +3,100 @@ const jwt = require('jsonwebtoken');
 let books = require("./booksdb.js");
 const regd_users = express.Router();
 
-let users = [];
+let users = {};
 
-const isValid = (username)=>{ //returns boolean
-//write code to check is the username is valid
-}
+// Função para verificar se um nome de usuário já está registrado
+const isValid = (username) => {
+    return Object.prototype.hasOwnProperty.call(users, username);
+};
 
-const authenticatedUser = (username,password)=>{ //returns boolean
-//write code to check if username and password match the one we have in records.
-}
+// Função para autenticar um usuário
+const authenticatedUser = (username, password) => {
+    return isValid(username) && users[username].password === password;
+};
 
-//only registered users can login
-regd_users.post("/login", (req,res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+// Endpoint para registro de usuário
+regd_users.post("/register", (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ message: "Nome de usuário e senha são obrigatórios." });
+    }
+
+    if (isValid(username)) {
+        return res.status(400).json({ message: "Nome de usuário já existe. Escolha outro." });
+    }
+
+    users[username] = { password }; // Registra o usuário
+    res.json({ message: "Usuário registrado com sucesso!" });
 });
 
-// Add a book review
-regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+// Endpoint para login de usuário com JWT
+regd_users.post("/login", (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ message: "Nome de usuário e senha são obrigatórios." });
+    }
+
+    if (!authenticatedUser(username, password)) {
+        return res.status(401).json({ message: "Credenciais inválidas." });
+    }
+
+    const token = jwt.sign({ username }, "secretkey", { expiresIn: "1h" });
+    res.json({ message: "Login bem-sucedido!", token });
+});
+
+// Middleware para autenticação
+const verifyToken = (req, res, next) => {
+    const token = req.headers["authorization"];
+    if (!token) {
+        return res.status(403).json({ message: "Token necessário para autenticação." });
+    }
+    jwt.verify(token, "secretkey", (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: "Token inválido." });
+        }
+        req.user = decoded;
+        next();
+    });
+};
+
+// Endpoint para adicionar ou modificar uma resenha de livro
+regd_users.put("/auth/review/:isbn", verifyToken, (req, res) => {
+    const isbn = req.params.isbn;
+    const { review } = req.body;
+    const username = req.user.username;
+
+    console.log("🔹 Tentativa de adicionar resenha por:", username);
+
+    if (!books[isbn]) {
+        return res.status(404).json({ message: "Livro não encontrado." });
+    }
+
+    if (!review) {
+        return res.status(400).json({ message: "A resenha não pode estar vazia." });
+    }
+
+    books[isbn].reviews = books[isbn].reviews || {};
+    books[isbn].reviews[username] = review;
+
+    console.log("✅ Resenha adicionada/modificada por", username);
+    return res.json({ message: "Resenha adicionada/modificada com sucesso!", reviews: books[isbn].reviews });
+});
+
+
+// Endpoint para excluir uma resenha de livro
+regd_users.delete("/auth/review/:isbn", verifyToken, (req, res) => {
+    const isbn = req.params.isbn;
+    const username = req.user.username;
+
+    if (!books[isbn] || !books[isbn].reviews || !books[isbn].reviews[username]) {
+        return res.status(404).json({ message: "Nenhuma resenha encontrada para excluir." });
+    }
+
+    delete books[isbn].reviews[username];
+    res.json({ message: "Resenha excluída com sucesso!", reviews: books[isbn].reviews });
 });
 
 module.exports.authenticated = regd_users;
