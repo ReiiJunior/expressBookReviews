@@ -13,11 +13,11 @@ app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUni
 app.use("/customer/auth/*", function auth(req,res,next){
 //Write the authenication mechanism here
 
-if (req.session.authorization) {
-    let token = req.session.authorization['accessToken'];
+if (req.session?.authorization || req.headers['authorization']) {
+    let token = req.session?.authorization?.accessToken || req.headers['authorization'].split(' ')[1];
 
     // Verify JWT token
-    jwt.verify(token, "access", (err, user) => {
+    jwt.verify(token, "secretkey", (err, user) => {
         if (!err) {
             req.user = user;
             next();

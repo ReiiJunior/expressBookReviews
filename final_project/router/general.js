@@ -1,103 +1,49 @@
 const express = require('express');
+const axios = require('axios');
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
-
-public_users.post("/register", (req,res) => {
-  //Write your code here
-  const { username, password } = req.body;
-
-    if (!username || !password) {
-        return res.status(400).json({ success: false, message: "Nome de usuário e senha são obrigatórios." });
-    }
-
-    if (users[username]) {
-        return res.status(400).json({ success: false, message: "Nome de usuário já existe. Escolha outro." });
-    }
-
-    users[username] = { password }; // Armazena o usuário
-    res.json({ success: true, message: "Usuário registrado com sucesso!" });
+// Tarefa 10: Obter a lista de livros usando Promises
+public_users.get('/books', (req, res) => {
+    return new Promise((resolve) => {
+        resolve(books);
+    }).then(data => res.json(data))
+    .catch(err => res.status(500).json({ message: "Erro ao obter a lista de livros." }));
 });
 
-// Get the book list available in the shop
-public_users.get('/books',function (req, res) {
-  //Write your code here
-  const express = require('express');
-  const public_users = express.Router(); 
-  const books = require('./booksdb'); 
-
-
-
-  res.status(200).json(books);
+// Tarefa 11: Obter detalhes do livro pelo ISBN usando Promises
+public_users.get('/isbn/:isbn', (req, res) => {
+    return new Promise((resolve, reject) => {
+        const isbn = req.params.isbn;
+        const book = books[isbn];
+        if (book) resolve(book);
+        else reject("Livro não encontrado.");
+    }).then(data => res.json(data))
+    .catch(err => res.status(404).json({ message: err }));
 });
 
-// Get book details based on ISBN
-public_users.get('/isbn/:isbn',function (req, res) {
-  //Write your code here
-
-
-
-  const express = require('express');
-  const public_users = express.Router();
-  const books = require('./booksdb'); 
-
-  // Rota para obter detalhes do livro pelo ISBN
-  const isbn = req.params.isbn;
-      const book = books[isbn];
-      
-      if (book) {
-          res.json({ success: true, book: { isbn, ...book } });
-      } else {
-          res.status(404).json({ success: false, message: "Livro não encontrado" });
-      }
-
-  module.exports = public_users;
-
- });
-  
-// Get book details based on author
-
-public_users.get('/author/:author', function (req, res) {
-  const authorQuery = req.params.author.toLowerCase();
-  const matchingBooks = Object.values(books).filter(book => book.author.toLowerCase().includes(authorQuery) // Permite buscas parciais
-  );
-  
-  if (matchingBooks.length > 0) {
-      res.json({ success: true, books: matchingBooks });
-  } else {
-      res.status(404).json({ success: false, message: `Nenhum livro encontrado para o autor ${req.params.author}` });
-  }
+// Tarefa 12: Obter detalhes do livro pelo Autor usando Promises
+public_users.get('/author/:author', (req, res) => {
+    return new Promise((resolve, reject) => {
+        const author = req.params.author.toLowerCase();
+        const matchingBooks = Object.values(books).filter(book => book.author.toLowerCase().includes(author));
+        if (matchingBooks.length > 0) resolve(matchingBooks);
+        else reject("Nenhum livro encontrado para esse autor.");
+    }).then(data => res.json(data))
+    .catch(err => res.status(404).json({ message: err }));
 });
 
-
-// Get all books based on title
-public_users.get('/title/:title',function (req, res) {
-  //Write your code here
-  
-  const titleQuery = req.params.title.toLowerCase();
-  const matchingBooks = Object.values(books).filter(book => book.title.toLowerCase().includes(titleQuery) // Permite buscas parciais
-  );
-  
-  if (matchingBooks.length > 0) {
-      res.json({ success: true, books: matchingBooks });
-  } else {
-      res.status(404).json({ success: false, message: `Nenhum livro encontrado com o título ${req.params.title}` });
-  }
-});
-
-//  Get book review
-
-public_users.get('/review/:isbn', function (req, res) {
-  const isbn = req.params.isbn;
-  const book = books[isbn];
-  
-  if (book) {
-      res.json({ success: true, reviews: book.reviews });
-  } else {
-      res.status(404).json({ success: false, message: `Nenhum livro encontrado com o ISBN ${isbn}` });
-  }
+// Tarefa 13: Obter detalhes do livro pelo Título usando Promises
+public_users.get('/title/:title', (req, res) => {
+    return new Promise((resolve, reject) => {
+        const title = req.params.title.toLowerCase();
+        const matchingBooks = Object.values(books).filter(book => book.title.toLowerCase().includes(title));
+        if (matchingBooks.length > 0) resolve(matchingBooks);
+        else reject("Nenhum livro encontrado com esse título.");
+    }).then(data => res.json(data))
+    .catch(err => res.status(404).json({ message: err }));
 });
 
 module.exports.general = public_users;

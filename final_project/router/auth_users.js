@@ -48,22 +48,10 @@ regd_users.post("/login", (req, res) => {
 });
 
 // Middleware para autenticação
-const verifyToken = (req, res, next) => {
-    const token = req.headers["authorization"];
-    if (!token) {
-        return res.status(403).json({ message: "Token necessário para autenticação." });
-    }
-    jwt.verify(token, "secretkey", (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ message: "Token inválido." });
-        }
-        req.user = decoded;
-        next();
-    });
-};
+
 
 // Endpoint para adicionar ou modificar uma resenha de livro
-regd_users.put("/auth/review/:isbn", verifyToken, (req, res) => {
+regd_users.put("/auth/review/:isbn", (req, res) => {
     const isbn = req.params.isbn;
     const { review } = req.body;
     const username = req.user.username;
@@ -87,7 +75,7 @@ regd_users.put("/auth/review/:isbn", verifyToken, (req, res) => {
 
 
 // Endpoint para excluir uma resenha de livro
-regd_users.delete("/auth/review/:isbn", verifyToken, (req, res) => {
+regd_users.delete("/auth/review/:isbn", (req, res) => {
     const isbn = req.params.isbn;
     const username = req.user.username;
 
